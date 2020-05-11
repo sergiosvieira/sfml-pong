@@ -1,9 +1,12 @@
 #include <SFML/Graphics.hpp>
 #include <functional>
 #include <memory>
+#include <iostream>
 
 static const int kWidth = 800;
 static const int kHeight = 480;
+static const int kFPS = 30;
+static const sf::Time kUpdateMs = sf::seconds(1.f/static_cast<float>(kFPS));
 
 using sf::RenderWindow,
     sf::VideoMode,
@@ -14,14 +17,16 @@ using sf::RenderWindow,
     sf::Vector2f,
     sf::Font,
     sf::Text,
-    sf::FloatRect;
+    sf::FloatRect,
+    sf::Time,
+    sf::Clock;
 
 using Draw = std::function<void(RenderWindow&)>;
 using Update = std::function<void(float)>;
 
 using Player = struct Player {
     RectangleShape shape;
-    Vector2f vel = {1.f, 1.f};
+    Vector2f vel = {150.f, 150.f};
     int score = 100;
     Text& scoreText;
     Player(float x, float y, Text& score_text):
@@ -40,14 +45,14 @@ using Player = struct Player {
     }
     void update(float dt) {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-            float ny = shape.getPosition().y - vel.y;
+            float ny = shape.getPosition().y - vel.y * dt;
             if (ny > 0) {
                 shape.setPosition(shape.getPosition().x, ny);
             }
         } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-            float ny = shape.getPosition().y + vel.y + shape.getSize().y;
+            float ny = shape.getPosition().y + vel.y * dt + shape.getSize().y;
             if (ny < kHeight) {
-                shape.setPosition(shape.getPosition().x, shape.getPosition().y + vel.y);
+                shape.setPosition(shape.getPosition().x, shape.getPosition().y + vel.y * dt);
             }
         }
     }
@@ -55,7 +60,7 @@ using Player = struct Player {
 
 using Ball = struct Ball {
     RectangleShape shape;
-    Vector2f vel = {1.f, 1.f};
+    Vector2f vel = {200.f, 200.f};
     Ball (float x, float y) {
         shape.setPosition(x, y);
         shape.setSize(Vector2f{15.f, 15.f});
@@ -70,7 +75,10 @@ using Ball = struct Ball {
         rw.draw(shape);
     }
     void update(float dt) {
-
+        Vector2f pos = shape.getPosition();
+        pos.x += vel.x * dt;
+        pos.y += vel.y * dt;
+        shape.setPosition(pos);
     }
 };
 
@@ -81,6 +89,8 @@ float center(float element, float screen) {
 void loop(RenderWindow& window,
           Update update = nullptr,
           Draw draw = nullptr) {
+    Clock clock;
+    Time elapsed = clock.restart();
     while (window.isOpen())
     {
         sf::Event event;
@@ -89,7 +99,11 @@ void loop(RenderWindow& window,
             if (event.type == sf::Event::Closed)
                 window.close();
         }
-        if (update) update(0.f);
+        elapsed += clock.restart();
+        while (elapsed >= kUpdateMs) {
+            if (update) update(kUpdateMs.asSeconds());
+            elapsed -= kUpdateMs;
+        }
         window.clear();
         if (draw) draw(window);
         window.display();
