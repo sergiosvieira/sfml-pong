@@ -107,7 +107,7 @@ void drawWall(RenderWindow& rw,
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(kWidth, kHeight), "Aula 03 - Pong");
+    sf::RenderWindow window(sf::VideoMode(kWidth, kHeight), "Aula 04 - Pong");
     Font font;
     font.loadFromFile("atari.ttf");
     Text score("", font, 80);
