@@ -78,6 +78,20 @@ using Ball = struct Ball {
         Vector2f pos = shape.getPosition();
         pos.x += vel.x * dt;
         pos.y += vel.y * dt;
+        if (pos.x + width() > kWidth) {
+            pos.x = kWidth - width();
+            vel.x *= -1.f;
+        } else if (pos.x < 0) {
+            pos.x = 0;
+            vel.x *= -1.f;
+        }
+        if (pos.y + height() > kHeight) {
+            pos.y = kHeight - height();
+            vel.y *= -1.f;
+        } else if (pos.y < 0) {
+            pos.y = 0;
+            vel.y *= -1.f;
+        }
         shape.setPosition(pos);
     }
 };
