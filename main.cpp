@@ -94,6 +94,9 @@ using Ball = struct Ball {
         }
         shape.setPosition(pos);
     }
+    bool intersect(RectangleShape& player) {
+        return shape.getGlobalBounds().intersects(player.getGlobalBounds());
+    }
 };
 
 float center(float element, float screen) {
@@ -149,6 +152,11 @@ int main()
     Update update = [&](float dt) {
         p1.update(dt);
         ball.update(dt);
+        if (ball.intersect(p1.shape)
+            || ball.intersect(p2.shape))
+        {
+           ball.vel.x *= -1.f;
+        }
     };
     Draw draw = [&](RenderWindow& rw) {
         p1.draw(rw);
