@@ -2,11 +2,13 @@
 #include <functional>
 #include <memory>
 #include <iostream>
+#include <cmath>
 
 static const int kWidth = 800;
 static const int kHeight = 480;
 static const int kFPS = 30;
 static const sf::Time kUpdateMs = sf::seconds(1.f/static_cast<float>(kFPS));
+static const float kBallMaxVel = 300.f;
 
 using sf::RenderWindow,
     sf::VideoMode,
@@ -60,7 +62,7 @@ using Player = struct Player {
 
 using Ball = struct Ball {
     RectangleShape shape;
-    Vector2f vel = {200.f, 200.f};
+    Vector2f vel = {kBallMaxVel, kBallMaxVel};
     Ball (float x, float y) {
         shape.setPosition(x, y);
         shape.setSize(Vector2f{15.f, 15.f});
@@ -136,6 +138,24 @@ void drawWall(RenderWindow& rw,
     }
 }
 
+Vector2f bounceVel(RectangleShape& pad,
+                   RectangleShape& ball) {
+    static const float PI=3.14159265358979f;
+    // Equivale a 75 graus
+    static const float kMaxAngle = (5.f * PI) / 12.f; // radianos
+    float padHalf = pad.getGlobalBounds().height / 2.f;
+    float ballHalf = ball.getGlobalBounds().height / 2.f;
+    float distance = (pad.getGlobalBounds().top + padHalf)
+            - (ball.getGlobalBounds().top + ballHalf);
+    if (distance < -padHalf) distance = -padHalf;
+    else if (distance > padHalf) distance = padHalf;
+    float normalizedDistance = distance / padHalf;
+    float angle = kMaxAngle * normalizedDistance;
+    float x = cos(angle) * kBallMaxVel;
+    float y = -sin(angle) * kBallMaxVel;
+    return {x, y};
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(kWidth, kHeight), "Aula 04 - Pong");
@@ -151,10 +171,12 @@ int main()
     float centerXWall = center(wall.getSize().x, kWidth); // posição no eixo x dos quadrados que fazem parte do separador de tela
     Update update = [&](float dt) {
         p1.update(dt);
+        p2.update(dt);
         ball.update(dt);
-        if (ball.intersect(p1.shape)
-            || ball.intersect(p2.shape))
-        {
+        if (ball.intersect(p1.shape)) {
+           ball.vel = bounceVel(p1.shape, ball.shape);
+        } else if (ball.intersect(p2.shape)) {
+           ball.vel = bounceVel(p2.shape, ball.shape);
            ball.vel.x *= -1.f;
         }
     };
