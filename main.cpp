@@ -8,7 +8,7 @@ static const int kWidth = 800;
 static const int kHeight = 480;
 static const int kFPS = 30;
 static const sf::Time kUpdateMs = sf::seconds(1.f/static_cast<float>(kFPS));
-static const float kBallMaxVel = 300.f;
+static const float kBallMaxVel = 400.f;
 
 using sf::RenderWindow,
     sf::VideoMode,
@@ -25,11 +25,12 @@ using sf::RenderWindow,
 
 using Draw = std::function<void(RenderWindow&)>;
 using Update = std::function<void(float)>;
+enum class BallState {None, Left, Right};
 
 using Player = struct Player {
     RectangleShape shape;
     Vector2f vel = {150.f, 150.f};
-    int score = 100;
+    int score = 0;
     Player(float x, float y){
         shape.setPosition(x, y);
         shape.setSize(Vector2f{20.f, 80.f});
@@ -74,16 +75,18 @@ using Ball = struct Ball {
     void draw(RenderWindow& rw) {
         rw.draw(shape);
     }
-    void update(float dt) {
+    BallState update(float dt) {
         Vector2f pos = shape.getPosition();
         pos.x += vel.x * dt;
         pos.y += vel.y * dt;
         if (pos.x + width() > kWidth) {
             pos.x = kWidth - width();
             vel.x *= -1.f;
+            return BallState::Right;
         } else if (pos.x < 0) {
             pos.x = 0;
             vel.x *= -1.f;
+            return BallState::Left;
         }
         if (pos.y + height() > kHeight) {
             pos.y = kHeight - height();
@@ -93,6 +96,7 @@ using Ball = struct Ball {
             vel.y *= -1.f;
         }
         shape.setPosition(pos);
+        return BallState::None;
     }
     bool intersect(RectangleShape& player) {
         return shape.getGlobalBounds().intersects(player.getGlobalBounds());
@@ -164,9 +168,7 @@ int main()
     sf::RenderWindow window(sf::VideoMode(kWidth, kHeight), "Aula 04 - Pong");
     // Elementos do jogo
     Player p1(10.f, center(80.f, kHeight));
-    p1.score = 10;
     Player p2(kWidth - 30.f, center(80.f, kHeight));
-    p2.score = 100;
     Ball ball(10.f, 10.f);
     RectangleShape wall(Vector2f{5.f, 5.f});
     float center = kWidth/2.f; // posição no eixo x dos quadrados que fazem parte do separador de tela
@@ -180,7 +182,20 @@ int main()
     Update update = [&](float dt) {
         p1.update(dt);
         p2.update(dt);
-        ball.update(dt);
+        BallState state = ball.update(dt);
+        if (state == BallState::Left) {
+            ++p2.score;
+            scoreP2Text.setString(std::to_string(p2.score));
+            scoreP2Text.setPosition(center, 10.f);
+            ball.shape.setPosition(10.f, 10.f);
+            ball.vel = {kBallMaxVel, kBallMaxVel};
+        } else if (state == BallState::Right) {
+            ++p1.score;
+            scoreP1Text.setString(std::to_string(p1.score));
+            scoreP1Text.setPosition(center - scoreP1Text.getGlobalBounds().width - 20.f, 10.f);
+            ball.shape.setPosition(kWidth - ball.width() - 10.f, 10.f);
+            ball.vel = {-kBallMaxVel, kBallMaxVel};
+        }
         if (ball.intersect(p1.shape)) {
            ball.vel = bounceVel(p1.shape, ball.shape);
         } else if (ball.intersect(p2.shape)) {
