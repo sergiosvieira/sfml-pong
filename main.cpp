@@ -30,9 +30,7 @@ using Player = struct Player {
     RectangleShape shape;
     Vector2f vel = {150.f, 150.f};
     int score = 100;
-    Text& scoreText;
-    Player(float x, float y, Text& score_text):
-    scoreText(score_text){
+    Player(float x, float y){
         shape.setPosition(x, y);
         shape.setSize(Vector2f{20.f, 80.f});
     }
@@ -130,10 +128,10 @@ void loop(RenderWindow& window,
 }
 
 void drawWall(RenderWindow& rw,
-              RectangleShape& wall,
-              float centerXWall) {
+              RectangleShape& wall) {
+    float center = kWidth / 2.f - wall.getSize().x / 2.f;
     for (int i = 0; i < 48; ++i) {
-        wall.setPosition(centerXWall, 10.f * i);
+        wall.setPosition(center, 10.f * i);
         rw.draw(wall);
     }
 }
@@ -156,19 +154,29 @@ Vector2f bounceVel(RectangleShape& pad,
     return {x, y};
 }
 
+float scoreWidth(int score, Text& text) {
+    text.setString(std::to_string(score));
+    return text.getGlobalBounds().width;
+}
+
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(kWidth, kHeight), "Aula 04 - Pong");
-    Font font;
-    font.loadFromFile("atari.ttf");
-    Text score("", font, 80);
-    Player p1(10.f, center(80.f, kHeight), score);
+    // Elementos do jogo
+    Player p1(10.f, center(80.f, kHeight));
     p1.score = 10;
-    Player p2(kWidth - 30.f, center(80.f, kHeight), score);
+    Player p2(kWidth - 30.f, center(80.f, kHeight));
     p2.score = 100;
     Ball ball(10.f, 10.f);
     RectangleShape wall(Vector2f{5.f, 5.f});
-    float centerXWall = center(wall.getSize().x, kWidth); // posição no eixo x dos quadrados que fazem parte do separador de tela
+    float center = kWidth/2.f; // posição no eixo x dos quadrados que fazem parte do separador de tela
+    // Pontuação
+    Font font;
+    font.loadFromFile("atari.ttf");
+    Text scoreP1Text(std::to_string(p1.score), font, 80);
+    scoreP1Text.setPosition(center - scoreP1Text.getGlobalBounds().width - 20.f, 10.f);
+    Text scoreP2Text(std::to_string(p2.score), font, 80);
+    scoreP2Text.setPosition(center, 10.f);
     Update update = [&](float dt) {
         p1.update(dt);
         p2.update(dt);
@@ -184,7 +192,9 @@ int main()
         p1.draw(rw);
         p2.draw(rw);
         ball.draw(rw);
-        drawWall(rw, wall, centerXWall);
+        drawWall(rw, wall);
+        rw.draw(scoreP1Text);
+        rw.draw(scoreP2Text);
     };
     loop(window, update, draw);
     return 0;
