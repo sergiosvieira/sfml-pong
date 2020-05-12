@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <functional>
 #include <memory>
 #include <iostream>
@@ -62,7 +63,11 @@ using Player = struct Player {
 using Ball = struct Ball {
     RectangleShape shape;
     Vector2f vel = {kBallMaxVel, kBallMaxVel};
+    sf::SoundBuffer buffer;
+    sf::Sound sound;
     Ball (float x, float y) {
+        buffer.loadFromFile("goal.wav");
+        sound.setBuffer(buffer);
         shape.setPosition(x, y);
         shape.setSize(Vector2f{15.f, 15.f});
     }
@@ -91,9 +96,11 @@ using Ball = struct Ball {
         if (pos.y + height() > kHeight) {
             pos.y = kHeight - height();
             vel.y *= -1.f;
+            sound.play();
         } else if (pos.y < 0) {
             pos.y = 0;
             vel.y *= -1.f;
+            sound.play();
         }
         shape.setPosition(pos);
         return BallState::None;
@@ -179,6 +186,15 @@ int main()
     scoreP1Text.setPosition(center - scoreP1Text.getGlobalBounds().width - 20.f, 10.f);
     Text scoreP2Text(std::to_string(p2.score), font, 80);
     scoreP2Text.setPosition(center, 10.f);
+    // Efeitos sonoros
+    sf::SoundBuffer pongBuffer;
+    if (!pongBuffer.loadFromFile("pong.wav")) return -1;
+    sf::Sound pong;
+    pong.setBuffer(pongBuffer);
+    sf::SoundBuffer hitPointBuffer;
+    if (!hitPointBuffer.loadFromFile("goal_.wav")) return -1;
+    sf::Sound hitPoint;
+    hitPoint.setBuffer(hitPointBuffer);
     Update update = [&](float dt) {
         p1.update(dt);
         p2.update(dt);
@@ -189,18 +205,22 @@ int main()
             scoreP2Text.setPosition(center, 10.f);
             ball.shape.setPosition(10.f, 10.f);
             ball.vel = {kBallMaxVel, kBallMaxVel};
+            hitPoint.play();
         } else if (state == BallState::Right) {
             ++p1.score;
             scoreP1Text.setString(std::to_string(p1.score));
             scoreP1Text.setPosition(center - scoreP1Text.getGlobalBounds().width - 20.f, 10.f);
             ball.shape.setPosition(kWidth - ball.width() - 10.f, 10.f);
             ball.vel = {-kBallMaxVel, kBallMaxVel};
+            hitPoint.play();
         }
         if (ball.intersect(p1.shape)) {
            ball.vel = bounceVel(p1.shape, ball.shape);
+           pong.play();
         } else if (ball.intersect(p2.shape)) {
            ball.vel = bounceVel(p2.shape, ball.shape);
            ball.vel.x *= -1.f;
+           pong.play();
         }
     };
     Draw draw = [&](RenderWindow& rw) {
